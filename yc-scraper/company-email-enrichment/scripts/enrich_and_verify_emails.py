@@ -102,7 +102,7 @@ def main():
     """
     
     input_file = '../../scrapy-project/output.json'
-    output_file = '../../output/final_enriched_company_data.json'  # This is the final output file
+    output_file = '../../../final_enriched_company_data.json'  # This is the final output file
     
     companies_data = []
     

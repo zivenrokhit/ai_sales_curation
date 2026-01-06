@@ -122,7 +122,7 @@ def main():
     """
     
     input_file = 'companies_step1_enriched.json'
-    output_file = 'final_enriched_company_data.json'
+    output_file = '../../../final_enriched_company_data.json'
     
     companies_data = []
 
