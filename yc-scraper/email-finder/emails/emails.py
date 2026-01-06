@@ -7,7 +7,6 @@ import time
 import unicodedata
 import os
 
-# --- HELPER FUNCTIONS (Copied from your script) ---
 
 def normalize_text(text):
     """Converts unicode text into a plain ASCII representation."""
@@ -99,17 +98,17 @@ def find_verified_email(first_name, last_name, domain):
 def main():
     """
     Reads company data, enriches it with email verification,
-    and saves the modified data.
+    and saves the final enriched data to final_enriched_company_data.json.
     """
     
     input_file = '../../scrapy-project/output.json'
-    output_file = 'enriched_company_data.json'
+    output_file = '../../output/final_enriched_company_data.json'  # This is the final output file
     
     companies_data = []
     
     # --- Resumability Logic ---
-    # Try to load the *output* file first. If it exists, we are resuming.
-    # If not, load the *input* file to start from scratch.
+    # Try to load the final output file first. If it exists, we are resuming.
+    # If not, load the input file to start from scratch.
     if os.path.exists(output_file):
         print(f"--- Resuming from '{output_file}' ---")
         try:
@@ -237,8 +236,8 @@ def main():
         print(f"  [CRITICAL: Failed to write to {output_file}: {e}]")
 
     print(f"\n========================================================")
-    print(f"Enrichment Step 1 complete.")
-    print(f"Results saved to {output_file}")
+    print(f"Enrichment complete.")
+    print(f"Final results saved to {output_file}")
     print(f"========================================================")
 
 
