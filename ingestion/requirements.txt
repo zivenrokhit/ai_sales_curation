@@ -1,0 +1,6 @@
+langchain
+langchain-pinecone
+pinecone
+python-dotenv
+sentence-transformers
+langchain-huggingface
