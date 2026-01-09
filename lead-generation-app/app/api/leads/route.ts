@@ -1,23 +1,32 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server";
+import { extractSearchFilters } from "@/lib/services/queryExtractor";
 
 export async function POST(request: NextRequest) {
   try {
-    const { query } = await request.json()
+    const { query } = await request.json();
 
     if (!query || typeof query !== "string") {
-      return NextResponse.json({ error: "Invalid query provided" }, { status: 400 })
+      return NextResponse.json(
+        { error: "Invalid query provided" },
+        { status: 400 }
+      );
     }
 
-    console.log("Received leads query:", query)
+    const extraction = await extractSearchFilters(query);
 
     return NextResponse.json({
       success: true,
-      message: "Your request has been received. Our AI is processing your lead criteria.",
-      query,
-      timestamp: new Date().toISOString(),
-    })
+      original_query: query,
+      extraction,
+    });
   } catch (error) {
-    console.error("Error processing leads request:", error)
-    return NextResponse.json({ error: "Failed to process request" }, { status: 500 })
+    console.error("Error processing leads request:", error);
+    return NextResponse.json(
+      {
+        error: "Failed to process request",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 }
+    );
   }
 }
