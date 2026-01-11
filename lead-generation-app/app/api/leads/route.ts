@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { Pinecone } from "@pinecone-database/pinecone";
-import { pipeline } from "@huggingface/transformers";
+import { InferenceClient } from "@huggingface/inference";
 import { ChatGroq } from "@langchain/groq";
 import { z } from "zod";
 import { extractSearchFilters } from "@/lib/services/queryExtractor";
@@ -8,7 +8,8 @@ import { extractSearchFilters } from "@/lib/services/queryExtractor";
 const INDEX_NAME = "ai-leads-project";
 
 const pc = new Pinecone({ apiKey: process.env.PINECONE_API_KEY! });
-let embeddingPipeline: any = null;
+
+const hfClient = new InferenceClient(process.env.HUGGINGFACE_API_KEY);
 
 const explanationLLM = new ChatGroq({
   model: "llama-3.3-70b-versatile",
@@ -16,14 +17,13 @@ const explanationLLM = new ChatGroq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
-async function getEmbeddingPipeline() {
-  if (!embeddingPipeline) {
-    embeddingPipeline = await pipeline(
-      "feature-extraction",
-      "Xenova/all-MiniLM-L6-v2"
-    );
-  }
-  return embeddingPipeline;
+async function generateEmbedding(text: string): Promise<number[]> {
+  const output = await hfClient.featureExtraction({
+    model: "sentence-transformers/all-MiniLM-L6-v2",
+    inputs: text,
+    provider: "hf-inference",
+  });
+  return output as number[];
 }
 
 const ExplanationSchema = z.object({
@@ -101,12 +101,7 @@ export async function POST(request: NextRequest) {
 
     const extraction = await extractSearchFilters(query);
 
-    const generateEmbedding = await getEmbeddingPipeline();
-    const output = await generateEmbedding(extraction.semantic_query, {
-      pooling: "mean",
-      normalize: true,
-    });
-    const queryVector = Array.from(output.data);
+    const queryVector = await generateEmbedding(extraction.semantic_query);
 
     const pineconeFilter: Record<string, any> = {};
     const excludedKeys = ["semantic_query", "company_name"];
