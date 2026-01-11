@@ -78,6 +78,16 @@ async function generateMatchExplanations(userQuery: string, matches: any[]) {
   }
 }
 
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    },
+  });
+}
 export async function POST(request: NextRequest) {
   try {
     const { query } = await request.json();
@@ -134,14 +144,24 @@ export async function POST(request: NextRequest) {
       ai_reason: explanations[match.company_id] || "No explanation available.",
     }));
 
-    return NextResponse.json({
-      success: true,
-      original_query: query,
-      strategy: extraction,
-      filters: pineconeFilter,
-      match_count: enrichedMatches.length,
-      matches: enrichedMatches,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        original_query: query,
+        strategy: extraction,
+        filters: pineconeFilter,
+        match_count: enrichedMatches.length,
+        matches: enrichedMatches,
+      },
+      {
+        status: 200,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        },
+      }
+    );
   } catch (error) {
     console.error("Error processing leads request:", error);
     return NextResponse.json(
