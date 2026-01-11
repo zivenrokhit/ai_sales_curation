@@ -41,6 +41,7 @@ type CompanyMatch = {
   score?: number;
   company_name?: string;
   short_description?: string | null;
+  ai_reason?: string | null;
   tags?: string[];
   location?: string | null;
   country?: string | null;
@@ -397,6 +398,15 @@ export default function LeadsRequestPage() {
                       </CardHeader>
 
                       <CardContent className="space-y-4 pt-4">
+                        {company.ai_reason && (
+                          <div className="flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm">
+                            <Sparkles className="h-4 w-4 text-primary shrink-0" />
+                            <p className="text-primary/90">
+                              {company.ai_reason}
+                            </p>
+                          </div>
+                        )}
+
                         {company.tags && company.tags.length > 0 && (
                           <div className="flex flex-wrap gap-2">
                             {company.tags.slice(0, 6).map((tag) => (
