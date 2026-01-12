@@ -17,13 +17,26 @@ const explanationLLM = new ChatGroq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
-async function generateEmbedding(text: string): Promise<number[]> {
-  const output = await hfClient.featureExtraction({
-    model: "sentence-transformers/all-MiniLM-L6-v2",
-    inputs: text,
-    provider: "hf-inference",
-  });
-  return output as number[];
+async function generateEmbedding(text: string, retries = 3): Promise<number[]> {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const output = await hfClient.featureExtraction({
+        model: "sentence-transformers/all-MiniLM-L6-v2",
+        inputs: text,
+      });
+      return output as number[];
+    } catch (error: any) {
+      console.error(
+        `HuggingFace API attempt ${attempt}/${retries} failed:`,
+        error.message
+      );
+      if (attempt === retries) throw error;
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000 * Math.pow(2, attempt - 1))
+      );
+    }
+  }
+  throw new Error("Failed to generate embedding after retries");
 }
 
 const ExplanationSchema = z.object({
@@ -103,8 +116,17 @@ export async function POST(request: NextRequest) {
 
     const queryVector = await generateEmbedding(extraction.semantic_query);
 
+    // Build filters - only use highly reliable filters
     const pineconeFilter: Record<string, any> = {};
-    const excludedKeys = ["semantic_query", "company_name"];
+    const excludedKeys = [
+      "semantic_query",
+      "company_name",
+      "location",
+      "country",
+      "year_founded",
+      "num_founders",
+      "team_size",
+    ];
 
     Object.entries(extraction).forEach(([key, value]) => {
       if (value === undefined || value === null || excludedKeys.includes(key))
@@ -118,12 +140,30 @@ export async function POST(request: NextRequest) {
     });
 
     const index = pc.index(INDEX_NAME);
-    const searchResults = await index.query({
+
+    // First try with filters
+    let searchResults = await index.query({
       vector: queryVector as number[],
-      filter: pineconeFilter,
-      topK: 5,
+      filter:
+        Object.keys(pineconeFilter).length > 0 ? pineconeFilter : undefined,
+      topK: 10,
       includeMetadata: true,
     });
+
+    // If no results with filters, retry without filters (semantic only)
+    if (
+      !searchResults.matches?.length &&
+      Object.keys(pineconeFilter).length > 0
+    ) {
+      console.log(
+        "No results with filters, retrying with semantic search only..."
+      );
+      searchResults = await index.query({
+        vector: queryVector as number[],
+        topK: 10,
+        includeMetadata: true,
+      });
+    }
 
     const rawMatches =
       searchResults.matches?.map((match) => ({
